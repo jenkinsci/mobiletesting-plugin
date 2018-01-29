@@ -1,0 +1,29 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:block>
+        <f:entry title="${%mobileStudioRunnerPath}" field="mobileStudioRunnerPath">
+            <f:textbox />
+        </f:entry>
+
+        <f:entry title="${%msgServer}" field="msgServer">
+            <f:textbox />
+        </f:entry>
+
+         <f:entry title="${%deviceId}" field="deviceId">
+            <f:textbox />
+         </f:entry>
+
+        <f:entry title="${%projectRoot}" field="projectRoot">
+            <f:textbox />
+        </f:entry>
+
+        <f:entry title="${%testListPath}" field="testPath">
+            <f:textbox />
+        </f:entry>
+
+        <f:entry title="${%testAsUnit}" field="testAsUnit">
+            <f:checkbox />
+        </f:entry>
+    </f:block>
+</j:jelly>
