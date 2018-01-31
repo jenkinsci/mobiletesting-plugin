@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins;
 
-
 public enum TestType {
     SINGLE_TEST("test"),
     TEST_LIST("list");

@@ -7,20 +7,19 @@ import hudson.model.AbstractProject;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.remoting.Callable;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import jenkins.tasks.SimpleBuildStep;
+import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,7 +30,9 @@ import static org.jenkinsci.plugins.Utils.fileExists;
 import static org.jenkinsci.plugins.Utils.isEmpty;
 
 @SuppressWarnings("unused")
-public class TestBuilder extends Builder implements SimpleBuildStep {
+public class TestBuilder extends Builder implements SimpleBuildStep, Serializable {
+
+    private static final long serialVersionUID = 43887870234990L;
 
     private String mobileStudioRunnerPath;
     private String msgServer;
@@ -65,139 +66,189 @@ public class TestBuilder extends Builder implements SimpleBuildStep {
 
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
-        if (System.getProperty("os.name").toLowerCase().contains("windows")){
-            this.isWindows = true;
-        }
 
-        String workspacePath = run.getEnvironment(listener).get("WORKSPACE", null);
-        String outputFileName = "MobileStudioResults-" + System.currentTimeMillis() + ".xml";
-        String command = buildCommand(workspacePath, outputFileName);
+        MyCallable task = new MyCallable(String.valueOf(workspace),
+                            Constants.MOBILE_STUDIO_RESULTS_DIR,
+                            this.mobileStudioRunnerPath,
+                            this.testAsUnit,
+                            this.msgServer,
+                            this.projectRoot,
+                            this.deviceId,
+                            this.testType.toString(),
+                            this.testPath);
 
-        prepareWorkspace(workspacePath);
-        Runtime rt = Runtime.getRuntime();
-        Process proc = rt.exec(command);
 
-        BufferedReader stdInput = new BufferedReader(new
-                InputStreamReader(proc.getInputStream()));
-
-        BufferedReader stdError = new BufferedReader(new
-                InputStreamReader(proc.getErrorStream()));
-
-        listener.getLogger().println("Command output:\n");
-        String s = null;
-        while ((s = stdInput.readLine()) != null) {
-            listener.getLogger().println(s);
-        }
-
-        listener.getLogger().println("STD Error output (if any):\n");
-        while ((s = stdError.readLine()) != null) {
-            listener.error(s);
-        }
-
-        String fullOutputName = workspace + File.separator + Constants.MOBILE_STUDIO_RESULTS_DIR + File.separator + outputFileName ;
-        if (!fileExists(fullOutputName)) {
-            listener.error("Result file doesn't exists: " + fullOutputName);
+        String result = launcher.getChannel().call(task);
+        listener.getLogger().println(result);
+        if (result != null && result.contains("> Step")){
+            run.setResult(Result.SUCCESS);
+        } else {
             run.setResult(Result.FAILURE);
         }
     }
 
-    private void prepareWorkspace(String workspace) {
-        File index = new File(workspace + File.separator + Constants.MOBILE_STUDIO_RESULTS_DIR);
-        if (!index.exists()) {
-            index.mkdir();
-        } else {
-            String[] entries = index.list();
-            for (String s : entries) {
-                File currentFile = new File(index.getPath(), s);
-                currentFile.delete();
-            }
-            if (!index.exists()) {
-                index.mkdir();
-            }
+
+    class MyCallable implements Callable<String, IOException> {
+        private static final long serialVersionUID = 754832542381L;
+
+        private String workspace;
+        private String resultsDir;
+        private String mobileStudioRunnerPath;
+        private boolean testAsUnit;
+        private boolean isWindows;
+        private String msgServer;
+        private String projectRoot;
+        private String deviceId;
+        private String testType;
+        private String testPath;
+
+        public MyCallable(String workspace,
+                          String resultsDir,
+                          String mobileStudioRunnerPath,
+                          boolean testAsUnit,
+                          String msgServer,
+                          String projectRoot,
+                          String deviceId,
+                          String testType,
+                          String testPath){
+            this.workspace = workspace;
+            this.resultsDir = resultsDir;
+            this.testAsUnit = testAsUnit;
+            this.mobileStudioRunnerPath = mobileStudioRunnerPath;
+            this.msgServer = msgServer;
+            this.projectRoot = projectRoot;
+            this.deviceId = deviceId;
+            this.testType = testType;
+            this.testPath = testPath;
         }
-    }
 
-    private String buildCommand(String workspace, String outputFileName) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(this.normalizeExecutable(this.mobileStudioRunnerPath));
+        @Override
+        public void checkRoles(RoleChecker roleChecker) throws SecurityException {
 
-        sb.append(" ");
-        sb.append("/msgServer=\"");
-        sb.append(this.msgServer);
-        sb.append("\"");
+        }
 
-        sb.append(" ");
-        sb.append("/project=\"");
-        sb.append(normalizePath(workspace, this.projectRoot));
-        sb.append("\"");
+        @Override
+        public String call() throws IOException {
 
-        sb.append(" /");
-        sb.append(this.testType.toString());
-        sb.append("=\"");
-        sb.append(this.testPath);
-        sb.append("\"");
+            String output = "\nRunning OS: Linux\n";
 
-        if (!isEmpty(this.deviceId)) {
+            if (System.getProperty("os.name").toLowerCase().contains("windows")){
+                this.isWindows = true;
+                output = "\nRunning OS: Windows\n";
+            }
+
+            String outputFileName = "MobileStudioResults-" + System.currentTimeMillis() + ".xml";
+            String command = buildCommand(this.workspace, outputFileName);
+            output += "\nCommand: \n" + command + "\n";
+
+            Runtime rt = Runtime.getRuntime();
+            Process proc = rt.exec(command);
+
+            BufferedReader stdInput = new BufferedReader(new
+                    InputStreamReader(proc.getInputStream()));
+
+            BufferedReader stdError = new BufferedReader(new
+                    InputStreamReader(proc.getErrorStream()));
+
+            output += "\nCommand output:\n";
+            String s = null;
+            while ((s = stdInput.readLine()) != null) {
+                output += s + "\n";
+            }
+
+            output += "\nSTD Error output (if any):\n";
+            while ((s = stdError.readLine()) != null) {
+                output += s + "\n";
+            }
+
+            output +="\nCommand exit code: " + proc.exitValue() +" \n";
+            return output;
+        }
+
+        private String buildCommand(String workspace, String outputFileName) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(this.normalizeExecutable(this.mobileStudioRunnerPath));
+
             sb.append(" ");
-            sb.append("/deviceId=\"");
-            sb.append(this.deviceId);
+            sb.append("/msgServer=\"");
+            sb.append(this.msgServer);
             sb.append("\"");
+
+            sb.append(" ");
+            sb.append("/project=\"");
+            sb.append(normalizePath(workspace, this.projectRoot));
+            sb.append("\"");
+
+            sb.append(" /");
+            sb.append(this.testType);
+            sb.append("=\"");
+            sb.append(this.testPath);
+            sb.append("\"");
+
+            if (!isEmpty(this.deviceId)) {
+                sb.append(" ");
+                sb.append("/deviceId=\"");
+                sb.append(this.deviceId);
+                sb.append("\"");
+            }
+
+            sb.append(" ");
+            sb.append("/output=\"");
+            sb.append(normalizePath(workspace, Constants.MOBILE_STUDIO_RESULTS_DIR + File.separator + outputFileName));
+            sb.append("\"");
+
+            sb.append(" ");
+            sb.append("/resultType=");
+            if (this.testAsUnit) {
+                sb.append("1");
+            } else {
+                sb.append("2");
+            }
+
+            return sb.toString();
         }
 
-        sb.append(" ");
-        sb.append("/output=\"");
-        sb.append(normalizePath(workspace, Constants.MOBILE_STUDIO_RESULTS_DIR + File.separator + outputFileName));
-        sb.append("\"");
-
-        sb.append(" ");
-        sb.append("/resultType=");
-        if (this.testAsUnit) {
-            sb.append("1");
-        } else {
-            sb.append("2");
+        private String normalizeExecutable(String mobileStudioRunnerPath) {
+            String pathToLowerCase = mobileStudioRunnerPath.toLowerCase();
+            String command = "";
+            if (!isWindows){
+                command = "mono \"";
+            } else {
+                command = "\"";
+            }
+            if (pathToLowerCase.endsWith(File.separator)) {
+                return command + mobileStudioRunnerPath + TELERIK_MOBILE_TESTING_RUNNER + "\"";
+            } else if (!pathToLowerCase.endsWith(TELERIK_MOBILE_TESTING_RUNNER.toLowerCase())) {
+                return command + mobileStudioRunnerPath + "\\" + TELERIK_MOBILE_TESTING_RUNNER + "\"";
+            }
+            return command + mobileStudioRunnerPath + "\"";
         }
 
-        return sb.toString();
-    }
-
-    private String normalizeExecutable(String mobileStudioRunnerPath) {
-        String pathToLowerCase = mobileStudioRunnerPath.toLowerCase();
-        String command = "";
-        if (!isWindows){
-            command = "mono ";
-        }
-        if (pathToLowerCase.endsWith(File.separator)) {
-            return command + mobileStudioRunnerPath + TELERIK_MOBILE_TESTING_RUNNER;
-        } else if (!pathToLowerCase.endsWith(TELERIK_MOBILE_TESTING_RUNNER.toLowerCase())) {
-            return command + mobileStudioRunnerPath + "\\" + TELERIK_MOBILE_TESTING_RUNNER;
-        }
-        return command + mobileStudioRunnerPath;
-    }
-
-    private String normalizePath(String workspace, String path){
-        String result;
-        if (isWindows) {
-            Matcher m = Pattern.compile("^\\D:\\\\.*$").matcher(path);
-            if (!m.find()) {
+        private String normalizePath(String workspace, String path){
+            String result;
+            if (isWindows) {
+                Matcher m = Pattern.compile("^\\D:\\\\.*$").matcher(path);
+                if (!m.find()) {
+                    if (path.startsWith(File.separator)) {
+                        result = workspace + path;
+                    } else {
+                        result = workspace + File.separator + path;
+                    }
+                } else {
+                    result = path;
+                }
+                if (result.endsWith(File.separator)) {
+                    result = result.substring(0, result.length() - 1);
+                }
+            } else {
                 if (path.startsWith(File.separator)) {
-                    result = workspace + path;
+                    result = path;
                 } else {
                     result = workspace + File.separator + path;
                 }
-            } else {
-                result = path;
             }
-            if (result.endsWith(File.separator)) {
-                result = result.substring(0, result.length() - 1);
-            }
-        } else {
-            if (path.startsWith(File.separator)) {
-                result = path;
-            } else {
-                result = workspace + File.separator + path;
-            }
+            return result;
         }
-        return result;
     }
 
     @SuppressWarnings("unused")
