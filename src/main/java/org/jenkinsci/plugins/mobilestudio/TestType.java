@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins;
+package org.jenkinsci.plugins.mobilestudio;
 
 public enum TestType {
     SINGLE_TEST("test"),

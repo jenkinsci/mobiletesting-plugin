@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins;
+package org.jenkinsci.plugins.mobilestudio;
 
 import hudson.Extension;
 import hudson.FilePath;
@@ -23,14 +23,12 @@ import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.jenkinsci.plugins.Constants.LIST;
-import static org.jenkinsci.plugins.Constants.TELERIK_MOBILE_TESTING_RUNNER;
-import static org.jenkinsci.plugins.Constants.TEST;
-import static org.jenkinsci.plugins.Utils.fileExists;
-import static org.jenkinsci.plugins.Utils.isEmpty;
+import static org.jenkinsci.plugins.mobilestudio.Constants.LIST;
+import static org.jenkinsci.plugins.mobilestudio.Constants.TELERIK_MOBILE_TESTING_RUNNER;
+import static org.jenkinsci.plugins.mobilestudio.Constants.TEST;
 
 @SuppressWarnings("unused")
-public class TestBuilder extends Builder implements SimpleBuildStep, Serializable {
+public class MobileStudioTestBuilder extends Builder implements SimpleBuildStep, Serializable {
 
     private static final long serialVersionUID = 43887870234990L;
 
@@ -47,7 +45,7 @@ public class TestBuilder extends Builder implements SimpleBuildStep, Serializabl
 
 
     @DataBoundConstructor
-    public TestBuilder(String mobileStudioRunnerPath,
+    public MobileStudioTestBuilder(String mobileStudioRunnerPath,
                        String msgServer,
                        String deviceId,
                        String projectRoot,
@@ -185,7 +183,7 @@ public class TestBuilder extends Builder implements SimpleBuildStep, Serializabl
             sb.append(this.testPath);
             sb.append("\"");
 
-            if (!isEmpty(this.deviceId)) {
+            if (!Utils.isEmpty(this.deviceId)) {
                 sb.append(" ");
                 sb.append("/deviceId=\"");
                 sb.append(this.deviceId);
@@ -257,12 +255,12 @@ public class TestBuilder extends Builder implements SimpleBuildStep, Serializabl
 
         @SuppressWarnings("unused")
         public FormValidation doCheckMobileStudioRunnerPath(@QueryParameter String mobileStudioRunnerPath) throws IOException, ServletException {
-            if (isEmpty(mobileStudioRunnerPath)) {
-                return FormValidation.error(Messages.TestBuilder_DescriptorImpl_errors_zero_mobileStudioTestRunnerPath());
+            if (Utils.isEmpty(mobileStudioRunnerPath)) {
+                return FormValidation.error(Messages.MobileStudioTestBuilder_DescriptorImpl_errors_zero_mobileStudioTestRunnerPath());
             } else {
                 File f = new File(mobileStudioRunnerPath);
                 if (!f.exists()) {
-                    return FormValidation.error(Messages.TestBuilder_DescriptorImpl_errors_notFound_mobileStudioTestRunnerPath());
+                    return FormValidation.error(Messages.MobileStudioTestBuilder_DescriptorImpl_errors_notFound_mobileStudioTestRunnerPath());
                 }
             }
             return FormValidation.ok();
@@ -271,14 +269,14 @@ public class TestBuilder extends Builder implements SimpleBuildStep, Serializabl
         @SuppressWarnings("unused")
         public FormValidation doCheckTestPath(@QueryParameter String testPath) throws IOException, ServletException {
 
-            if (isEmpty(testPath)) {
-                return FormValidation.error(Messages.TestBuilder_DescriptorImpl_errors_zero_testPath());
+            if (Utils.isEmpty(testPath)) {
+                return FormValidation.error(Messages.MobileStudioTestBuilder_DescriptorImpl_errors_zero_testPath());
             } else {
                 File f = new File(testPath);
                 if (!f.exists()) {
-                    return FormValidation.error(Messages.TestBuilder_DescriptorImpl_errors_notFound_testPath());
+                    return FormValidation.error(Messages.MobileStudioTestBuilder_DescriptorImpl_errors_notFound_testPath());
                 } else if (!testPath.endsWith(TEST) && !testPath.endsWith(LIST)) {
-                    return FormValidation.error(Messages.TestBuilder_DescriptorImpl_errors_extension_testPath());
+                    return FormValidation.error(Messages.MobileStudioTestBuilder_DescriptorImpl_errors_extension_testPath());
                 }
             }
 
@@ -288,8 +286,8 @@ public class TestBuilder extends Builder implements SimpleBuildStep, Serializabl
         @SuppressWarnings("unused")
         public FormValidation doCheckMsgServer(@QueryParameter String msgServer) throws IOException, ServletException {
 
-            if (isEmpty(msgServer)) {
-                return FormValidation.error(Messages.TestBuilder_DescriptorImpl_errors_zero_msgServer());
+            if (Utils.isEmpty(msgServer)) {
+                return FormValidation.error(Messages.MobileStudioTestBuilder_DescriptorImpl_errors_zero_msgServer());
             }
 
             return FormValidation.ok();
@@ -298,8 +296,8 @@ public class TestBuilder extends Builder implements SimpleBuildStep, Serializabl
         @SuppressWarnings("unused")
         public FormValidation doCheckDeviceId(@QueryParameter String deviceId) throws IOException, ServletException {
 
-            if (isEmpty(deviceId)) {
-                return FormValidation.error(Messages.TestBuilder_DescriptorImpl_errors_zero_deviceId());
+            if (Utils.isEmpty(deviceId)) {
+                return FormValidation.error(Messages.MobileStudioTestBuilder_DescriptorImpl_errors_zero_deviceId());
             }
 
             return FormValidation.ok();
@@ -312,7 +310,7 @@ public class TestBuilder extends Builder implements SimpleBuildStep, Serializabl
 
         @Override
         public String getDisplayName() {
-            return Messages.TestBuilder_DescriptorImpl_DisplayName();
+            return Messages.MobileStudioTestBuilder_DescriptorImpl_DisplayName();
         }
 
     }
