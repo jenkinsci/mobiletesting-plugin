@@ -7,9 +7,9 @@
         <version>2.33</version>
         <relativePath />
     </parent>
-    <artifactId>mobiletesting</artifactId>
+    <artifactId>teststudiomobiletesting</artifactId>
     <groupId>org.jenkins-ci.plugins</groupId>
-    <version>1.0.1</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <jenkins.version>2.7.3</jenkins.version>
@@ -31,9 +31,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git://github.com/jenkinsci/mobiletesting-plugin.git</connection>
-        <developerConnection>scm:git:git@github.com:jenkinsci/mobiletesting-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/mobiletesting-plugin</url>
+        <connection>scm:git:git://github.com/jenkinsci/teststudiomobiletesting-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:jenkinsci/teststudiomobiletesting-plugin.git</developerConnection>
+        <url>https://github.com/jenkinsci/teststudiomobiletesting-plugin</url>
     </scm>
     <repositories>
         <repository>
