@@ -8,6 +8,7 @@
         <relativePath />
     </parent>
     <artifactId>mobiletesting</artifactId>
+    <groupId>org.jenkins-ci.plugins</groupId>
     <version>1.0.1</version>
     <packaging>hpi</packaging>
     <properties>
@@ -15,7 +16,7 @@
     </properties>
     <name>Progress MobileStudio Plugin</name>
     <description>Progress MobileStudio Plugin</description>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>
+    <url>https://wiki.jenkins.io/display/JENKINS/Progress+MobileStudio+Plugin</url>
     <licenses>
         <license>
             <name>MIT License</name>
