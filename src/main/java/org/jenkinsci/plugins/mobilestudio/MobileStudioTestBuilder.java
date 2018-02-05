@@ -20,6 +20,7 @@ import org.kohsuke.stapler.QueryParameter;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,7 +87,7 @@ public class MobileStudioTestBuilder extends Builder implements SimpleBuildStep,
     }
 
 
-    class MyCallable implements Callable<String, IOException> {
+    static class MyCallable implements Callable<String, IOException> {
         private static final long serialVersionUID = 754832542381L;
 
         private String workspace;
@@ -128,39 +129,47 @@ public class MobileStudioTestBuilder extends Builder implements SimpleBuildStep,
         @Override
         public String call() throws IOException {
 
-            String output = "\nRunning OS: Linux\n";
+            StringBuilder output = new StringBuilder();
 
             if (System.getProperty("os.name").toLowerCase().contains("windows")){
                 this.isWindows = true;
-                output = "\nRunning OS: Windows\n";
+                output.append("\nRunning OS: Windows\n");
+            } else {
+                output.append("\nRunning OS: Linux\n");
             }
 
             String outputFileName = "MobileStudioResults-" + System.currentTimeMillis() + ".xml";
             String command = buildCommand(this.workspace, outputFileName);
-            output += "\nCommand: \n" + command + "\n";
+            output.append("\nCommand: \n" + command + "\n");
 
             Runtime rt = Runtime.getRuntime();
             Process proc = rt.exec(command);
 
             BufferedReader stdInput = new BufferedReader(new
-                    InputStreamReader(proc.getInputStream()));
+                    InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8));
 
             BufferedReader stdError = new BufferedReader(new
-                    InputStreamReader(proc.getErrorStream()));
+                    InputStreamReader(proc.getErrorStream(), StandardCharsets.UTF_8));
 
-            output += "\nCommand output:\n";
-            String s = null;
-            while ((s = stdInput.readLine()) != null) {
-                output += s + "\n";
+            try {
+                output.append("\nCommand output:\n");
+                String s = null;
+                while ((s = stdInput.readLine()) != null) {
+                    output.append(s + "\n");
+                }
+
+                output.append("\nSTD Error output (if any):\n");
+                while ((s = stdError.readLine()) != null) {
+                    output.append(s + "\n");
+                }
+            } finally {
+                stdInput.close();
+                stdError.close();
             }
 
-            output += "\nSTD Error output (if any):\n";
-            while ((s = stdError.readLine()) != null) {
-                output += s + "\n";
-            }
 
-            output +="\nCommand exit code: " + proc.exitValue() +" \n";
-            return output;
+            output.append("\nCommand exit code: " + proc.exitValue() +" \n");
+            return output.toString();
         }
 
         private String buildCommand(String workspace, String outputFileName) {
